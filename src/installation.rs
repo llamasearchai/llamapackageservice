@@ -22,7 +22,7 @@ pub async fn run_installation_checks() -> Result<(), ProcessorError> {
 
     // ... other checks ...
 
-    pb.finish_with_message("All installation tests completed successfully! 🎉");
+    pb.finish_with_message("All installation tests completed successfully!");
     Ok(())
 }
 

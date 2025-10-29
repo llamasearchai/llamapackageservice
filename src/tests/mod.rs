@@ -42,17 +42,17 @@ pub async fn run_test_suite() -> TestResult {
         
         match test.await {
             Ok(_) => {
-                show_llama_success(&format!("✅ {} passed", name)).await;
+                show_llama_success(&format!("[PASSED] {}", name)).await;
                 pb.inc(1);
             },
             Err(e) => {
-                show_llama_error(&format!("❌ {} failed: {}", name, e)).await;
+                show_llama_error(&format!("[FAILED] {}: {}", name, e)).await;
                 return Err(e);
             }
         }
     }
 
-    pb.finish_with_message("All tests completed successfully! 🎉");
+    pb.finish_with_message("All tests completed successfully!");
     Ok(())
 }
 

@@ -71,24 +71,24 @@ impl TestSuite {
 
             match (test.test_fn)().await {
                 Ok(_) => {
-                    show_llama_success(&format!("✅ {} passed", test.name)).await;
+                    show_llama_success(&format!("[PASSED] {}", test.name)).await;
                     self.total_progress.inc(1);
                 },
                 Err(e) => {
-                    show_llama_error(&format!("❌ {} failed: {}", test.name, e)).await;
+                    show_llama_error(&format!("[FAILED] {}: {}", test.name, e)).await;
                     return Err(e);
                 }
             }
             pb.finish_and_clear();
         }
 
-        self.total_progress.finish_with_message("All installation tests completed successfully! 🎉");
+        self.total_progress.finish_with_message("All installation tests completed successfully!");
         Ok(())
     }
 }
 
 pub async fn run_installation_tests() -> Result<(), ProcessorError> {
-    println!("\n🧪 Running Installation Tests");
+    println!("\n[TESTING] Running Installation Tests");
     let pb = ProgressBar::new(4);
     pb.set_message("Running tests...");
 
@@ -110,7 +110,7 @@ pub async fn run_installation_tests() -> Result<(), ProcessorError> {
     test_network_connectivity().await?;
     pb.inc(1);
 
-    pb.finish_with_message("All installation tests passed successfully! 🎉");
+    pb.finish_with_message("All installation tests passed successfully!");
     Ok(())
 }
 
