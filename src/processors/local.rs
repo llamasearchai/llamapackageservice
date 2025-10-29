@@ -47,14 +47,22 @@ const IGNORE_PATTERNS: &[&str] = &[
     "vendor", "deps", "libs"
 ];
 
+/// Information about a local repository or directory
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalRepoInfo {
+    /// Name of the repository or directory
     pub name: String,
+    /// Full path to the repository
     pub path: PathBuf,
+    /// Total size in bytes
     pub size_bytes: u64,
+    /// Number of files in the repository
     pub file_count: usize,
+    /// Primary programming language detected
     pub primary_language: Option<String>,
+    /// Distribution of programming languages (language -> file count)
     pub languages: HashMap<String, usize>,
+    /// Timestamp when the analysis was created
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -105,6 +113,21 @@ impl LocalProcessor {
                 input_path.display()
             )));
         }
+        
+        // Attempt permission elevation if needed
+        match crate::utils::attempt_permission_elevation(input_path) {
+            Ok(elevated) => {
+                if elevated {
+                    info!("Successfully gained access to restricted path");
+                }
+            }
+            Err(e) => {
+                warn!("Could not elevate permissions: {}", e);
+            }
+        }
+        
+        // Show elevation hint if needed
+        crate::utils::show_elevation_hint(input_path);
         
         // Check read permissions - but continue anyway
         match std_fs::metadata(input_path) {

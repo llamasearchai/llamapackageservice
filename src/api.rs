@@ -327,6 +327,7 @@ pub struct AnalysisRequest {
     pub context: Option<String>,
 }
 
+/// Response from an analysis request
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AnalysisResponse {
     /// Analysis ID
@@ -339,18 +340,21 @@ pub struct AnalysisResponse {
     pub analysis_type: String,
 }
 
+/// Request to start a conversation about a repository
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConversationRequest {
     /// Repository to discuss
     pub repository: String,
 }
 
+/// Response containing conversation ID
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConversationResponse {
     /// Conversation ID
     pub conversation_id: String,
 }
 
+/// Request to send a message in a conversation
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageRequest {
     /// Conversation ID
@@ -359,6 +363,7 @@ pub struct MessageRequest {
     pub message: String,
 }
 
+/// Response from sending a message
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageResponse {
     /// AI response

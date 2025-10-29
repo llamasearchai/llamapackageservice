@@ -97,7 +97,7 @@ async fn test_github_org_processing() {
         .create();
 
     let processor = GitHubProcessor::new();
-    let result = processor.process("https://github.com/rust-lang", temp_dir.path(), &config).await;
+    let _result = processor.process("https://github.com/rust-lang", temp_dir.path(), &config).await;
     
     // This might fail if your processor doesn't handle orgs - adjust as needed
     // assert!(result.is_ok());

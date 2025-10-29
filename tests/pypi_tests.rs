@@ -48,7 +48,7 @@ async fn test_pypi_url_extraction() {
     let processor = PyPiProcessor::new();
     
     // Test with direct PyPI URL
-    let config = create_test_config();
+    let _config = create_test_config();
     let result = processor.validate("https://pypi.org/project/requests/").await;
     assert!(result.is_ok());
     

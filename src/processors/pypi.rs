@@ -1166,7 +1166,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_pypi_processor() {
-        let temp_dir = TempDir::new().unwrap();
+        let _temp_dir = TempDir::new().unwrap();
         let processor = PyPiProcessor::new();
         
         // This is a simplified test that only checks the URL extraction

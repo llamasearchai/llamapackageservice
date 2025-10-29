@@ -1,5 +1,15 @@
 use tokio::time::{sleep, Duration};
 
+/// Retry a fallible async operation with exponential backoff
+/// 
+/// # Arguments
+/// * `f` - The async operation to retry
+/// * `retries` - Maximum number of retry attempts
+/// * `delay` - Base delay duration between retries (will be multiplied by attempt number)
+/// 
+/// # Returns
+/// * `Ok(T)` if the operation succeeds
+/// * `Err(E)` if all retry attempts fail
 pub async fn with_retry<F, Fut, T, E>(
     f: F,
     retries: u32,
