@@ -1,6 +1,6 @@
 [package]
 name = "llamapackageservice"
-version = "1.0.0"
+version = "1.0.2"
 edition = "2021"
 authors = ["Nik Jois <nikjois@llamasearch.ai>"]
 description = "Transform code repositories from various sources into structured text representations"

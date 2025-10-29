@@ -98,8 +98,30 @@ impl LocalProcessor {
         let normalized = crate::utils::normalize_user_input_path(path);
         let input_path = normalized.as_path();
         
+        // Check existence first
         if !input_path.exists() {
-            return Err(ProcessorError::Message(format!("Path does not exist: {}", input_path.display())));
+            return Err(ProcessorError::Message(format!(
+                "Path does not exist: '{}'. Please verify the path is correct.",
+                input_path.display()
+            )));
+        }
+        
+        // Check read permissions
+        match std_fs::metadata(input_path) {
+            Ok(metadata) => {
+                if metadata.permissions().readonly() && input_path.is_dir() {
+                    warn!("Path '{}' has restricted permissions. Some files may be skipped.", input_path.display());
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(ProcessorError::Message(format!(
+                    "Permission denied for path: '{}'. Please check file/directory permissions.",
+                    input_path.display()
+                )));
+            }
+            Err(e) => {
+                return Err(ProcessorError::IO(e));
+            }
         }
 
         let pb = create_progress_bar();
@@ -112,7 +134,10 @@ impl LocalProcessor {
             pb.set_message("Processing directory...");
             self.process_directory(input_path, output_dir, &pb).await?;
         } else {
-            return Err(ProcessorError::Message(format!("Invalid path type: {}", path)));
+            return Err(ProcessorError::Message(format!(
+                "Invalid path type: '{}'. Path must be a regular file or directory.",
+                input_path.display()
+            )));
         }
 
         pb.finish_with_message("Processing completed");
@@ -246,9 +271,28 @@ impl LocalProcessor {
             .into_iter()
             .filter_entry(|e| !self.should_ignore(e.path()))
         {
-            let entry = entry?;
-            if entry.file_type().is_file() {
-                files.push(entry.path().to_path_buf());
+            match entry {
+                Ok(entry) => {
+                    if entry.file_type().is_file() {
+                        files.push(entry.path().to_path_buf());
+                    }
+                }
+                Err(e) => {
+                    // Check if it's a permission error
+                    if let Some(io_err) = e.io_error() {
+                        if io_err.kind() == std::io::ErrorKind::PermissionDenied {
+                            // Log and skip permission-denied entries
+                            warn!("Skipping due to permissions: {}", e.path().map(|p| p.display().to_string()).unwrap_or_else(|| "unknown path".to_string()));
+                            continue;
+                        }
+                    }
+                    // For other errors, provide detailed context
+                    let path_info = e.path().map(|p| format!(" at path: {}", p.display())).unwrap_or_default();
+                    return Err(ProcessorError::Message(format!(
+                        "Error traversing directory{}: {}. Check permissions and ensure the full path is accessible.",
+                        path_info, e
+                    )));
+                }
             }
         }
         

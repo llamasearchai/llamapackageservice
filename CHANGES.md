@@ -1,3 +1,52 @@
+# LlamaPackageService v1.0.2 - Permission Error Handling
+
+**Author:** Nik Jois <nikjois@llamasearch.ai>  
+**Date:** October 29, 2025
+
+## Latest Update (v1.0.2)
+
+### Permission Error Fix
+
+**Problem:** Processing directories with restricted permissions would fail with:
+```
+[ERROR] Error: Walkdir error: IO error for operation on /Users/o11/Documents/OR: Operation not permitted (os error 1)
+```
+
+**Solution:** Implemented graceful permission error handling:
+
+1. **Early Permission Detection** (`src/processors/local.rs`):
+   - Check metadata and permissions before processing
+   - Provide clear error messages with full path context
+   - Warn users about directories with restricted permissions
+
+2. **Graceful Error Recovery**:
+   - Modified `collect_files()` to handle WalkDir permission errors
+   - Log warnings for inaccessible files/directories
+   - Continue processing accessible content
+   - Only fail on non-permission IO errors
+
+3. **Enhanced Error Messages**:
+   - Show full path being accessed
+   - Distinguish between permission and other IO errors
+   - Provide actionable guidance for users
+
+**Benefits:**
+- More robust file system traversal
+- Better user experience with informative warnings
+- Allows processing of partially accessible directories
+- Maintains security by respecting OS permissions
+
+**Files Changed:**
+- `src/processors/local.rs`: Added permission checking and error handling
+
+**Documentation:**
+- `PERMISSION_FIX.md`: Detailed explanation of the fix
+- `test_permission_fix.sh`: Demonstration script
+
+**Tests:** All existing tests pass, demonstrating backwards compatibility.
+
+---
+
 # LlamaPackageService v1.0.1 - Path Normalization and Professional Standards
 
 **Author:** Nik Jois <nikjois@llamasearch.ai>  
