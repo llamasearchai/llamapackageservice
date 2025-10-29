@@ -1,0 +1,126 @@
+[package]
+name = "llamapackageservice"
+version = "1.0.0"
+edition = "2021"
+authors = ["Nik Jois <nikjois@llamasearch.ai>"]
+description = "Transform code repositories from various sources into structured text representations"
+license = "MIT"
+repository = "https://github.com/yourusername/llamapackageservice"
+documentation = "https://docs.rs/llamapackageservice"
+readme = "README.md"
+keywords = ["code", "repository", "text", "processing", "llama"]
+categories = ["command-line-utilities", "development-tools", "text-processing"]
+default-run = "llamapackageservice"
+
+[dependencies]
+tokio = { version = "1.32", features = ["full"] }
+reqwest = { version = "0.11", features = ["json", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1"
+futures = "0.3"
+futures-util = "0.3"
+url = "2.4"
+zip = "0.6"
+walkdir = "2.3"
+tempfile = "3.8"
+indicatif = "0.17"
+log = "0.4"
+env_logger = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+anyhow = "1.0"
+clap = { version = "4.3", features = ["derive"] }
+toml = "0.7"
+regex = "1.9"
+lazy_static = "1.4"
+bytes = "1.4"
+tokio-util = { version = "0.7", features = ["codec"] }
+tokio-stream = { version = "0.1", features = ["fs"] }
+tracing = { version = "0.1", optional = false }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+yansi = "0.5"
+colored = "2.0"
+dialoguer = "0.10"
+directories = "4.0"
+flate2 = "1.0"
+tar = "0.4"
+rand = "0.8"
+scraper = "0.12"
+dirs = "5.0"
+time = "0.3.20"
+console = "0.15"
+semver = "1.0"
+async-compression = { version = "0.4", features = ["tokio", "gzip", "zlib"] }
+async-recursion = "1.0"
+content_inspector = "0.2"
+hex = "0.4"
+md5 = "0.7"
+mime = "0.3"
+pathdiff = "0.2"
+once_cell = "1.18"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+lru = "0.12"
+
+# OpenAI SDK for agents integration
+async-openai = "0.29"
+serde_yaml = "0.9"
+base64 = "0.21"
+
+# Web framework for FastAPI-equivalent functionality
+axum = "0.7"
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "trace", "cors"] }
+hyper = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+pretty_assertions = "1.4"
+test-case = "3.3"
+mockall = "0.12"
+wiremock = "0.5"
+criterion = "0.5"
+proptest = "1.3"
+mockito = "1.2"
+assert_cmd = "2.0"
+predicates = "3.0"
+
+[features]
+default = []
+full = []
+minimal = []
+llm = []
+
+[[bin]]
+name = "llamapackageservice"
+path = "src/main.rs"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = 3
+debug = false
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.bench]
+lto = true
+codegen-units = 1
+opt-level = 3
+debug = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[badges]
+maintenance = { status = "actively-developed" }

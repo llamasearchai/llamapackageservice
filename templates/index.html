@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦙 LlamaPackageService</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .api-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .api-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .api-endpoint {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .method {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+        
+        .endpoint-path {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .endpoint-desc {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 2rem;
+        }
+        
+        .health-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🦙</div>
+            <h1 class="title">LlamaPackageService</h1>
+            <p class="subtitle">
+                Transform code repositories from various sources into structured text representations
+            </p>
+            <div class="health-status">
+                <span class="status-indicator"></span>
+                <strong>Service Status:</strong> <span id="service-status">Checking...</span>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <span class="feature-icon">📁</span>
+                <h3 class="feature-title">Local Files & Directories</h3>
+                <p class="feature-description">
+                    Process local files and directories directly from your filesystem with intelligent analysis and organization.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🐙</span>
+                <h3 class="feature-title">GitHub Integration</h3>
+                <p class="feature-description">
+                    Seamlessly process GitHub repositories and organizations with full API integration and rate limiting.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">📦</span>
+                <h3 class="feature-title">Package Ecosystems</h3>
+                <p class="feature-description">
+                    Support for PyPI, NPM, Crates.io, and Go packages with automated dependency analysis.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3 class="feature-title">High Performance</h3>
+                <p class="feature-description">
+                    Built with Rust for maximum performance, featuring parallel processing and efficient caching.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🔄</span>
+                <h3 class="feature-title">Background Processing</h3>
+                <p class="feature-description">
+                    Submit jobs and track progress with our REST API, perfect for integration with other tools.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3 class="feature-title">Smart Organization</h3>
+                <p class="feature-description">
+                    Automatically organize output files by type and generate comprehensive indexes and reports.
+                </p>
+            </div>
+        </div>
+        
+        <div class="api-section">
+            <h2 class="api-title">🔌 REST API Endpoints</h2>
+            <div class="api-grid">
+                <div class="api-endpoint">
+                    <div class="method">GET</div>
+                    <div class="endpoint-path"><a href="/health">/health</a></div>
+                    <div class="endpoint-desc">Service health and status information</div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="method">GET</div>
+                    <div class="endpoint-path"><a href="/api/health">/api/health</a></div>
+                    <div class="endpoint-desc">Detailed API health check</div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="method">POST</div>
+                    <div class="endpoint-path">/api/process</div>
+                    <div class="endpoint-desc">Submit a new processing job</div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="method">GET</div>
+                    <div class="endpoint-path">/api/jobs</div>
+                    <div class="endpoint-desc">List all processing jobs</div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="method">GET</div>
+                    <div class="endpoint-path">/api/jobs/{id}</div>
+                    <div class="endpoint-desc">Get specific job status</div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="method">GET</div>
+                    <div class="endpoint-path">/api/files</div>
+                    <div class="endpoint-desc">List generated output files</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                <strong>Author:</strong> Nik Jois &lt;nikjois@llamasearch.ai&gt;<br>
+                <strong>Version:</strong> 1.0.0 | 
+                <strong>Built with:</strong> Rust 🦀 | 
+                <strong>License:</strong> MIT
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Check service health
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const health = await response.json();
+                document.getElementById('service-status').textContent = 
+                    `${health.status.toUpperCase()} (Uptime: ${Math.floor(health.uptime / 60)}m)`;
+            } catch (error) {
+                document.getElementById('service-status').textContent = 'OFFLINE';
+                document.getElementById('service-status').style.color = '#dc3545';
+            }
+        }
+        
+        // Check health on page load
+        checkHealth();
+        
+        // Check health every 30 seconds
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>

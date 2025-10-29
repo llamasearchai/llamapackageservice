@@ -1,0 +1,16 @@
+{
+    "language_stats": {
+        "Rust": 80,
+        "Python": 20
+    },
+    "complexity_metrics": {
+        "cyclomatic_complexity": 12.5,
+        "cognitive_complexity": 8.3,
+        "maintainability_index": 85.2
+    },
+    "semantic_insights": {
+        "key_concepts": ["API", "Processing", "Analysis"],
+        "architecture_patterns": ["Microservices", "Event-driven"],
+        "improvement_suggestions": ["Add more tests", "Improve documentation"]
+    }
+} 

@@ -1,0 +1,138 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug LlamaSearch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=package_processor",
+                    "--package=package_processor"
+                ],
+                "filter": {
+                    "name": "package_processor",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUST_LOG": "debug"
+            },
+            "sourceLanguages": ["rust"],
+            "preLaunchTask": "rust: cargo build"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Selected Package",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=package_processor"
+                ],
+                "filter": {
+                    "name": "package_processor",
+                    "kind": "bin"
+                }
+            },
+            "args": ["--process", "${input:packageUrl}"],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUST_LOG": "debug"
+            },
+            "sourceLanguages": ["rust"],
+            "preLaunchTask": "rust: cargo build"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Unit Tests",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=package_processor"
+                ],
+                "filter": {
+                    "name": "package_processor",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUST_LOG": "debug"
+            },
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Integration Tests",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=integration_tests"
+                ],
+                "filter": {
+                    "name": "integration_tests",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUST_LOG": "debug",
+                "TEST_LOG": "true"
+            },
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Benchmarks",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bench=benchmarks"
+                ],
+                "filter": {
+                    "name": "benchmarks",
+                    "kind": "bench"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "RUST_LOG": "debug"
+            },
+            "sourceLanguages": ["rust"]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug All Tests",
+            "configurations": ["Debug Unit Tests", "Debug Integration Tests"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "packageUrl",
+            "type": "promptString",
+            "description": "Enter the package URL to process",
+            "default": "https://github.com/rust-lang/rust"
+        }
+    ]
+} 

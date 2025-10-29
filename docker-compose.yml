@@ -1,0 +1,131 @@
+# Docker Compose configuration for LlamaPackageService
+# Author: Nik Jois <nikjois@llamasearch.ai>
+version: '3.8'
+
+services:
+  # Web server service
+  llamapackageservice-server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: llamapackageservice:latest
+    container_name: llamapackageservice-server
+    command: ["server"]
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - RUST_BACKTRACE=1
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - PYPI_API_KEY=${PYPI_API_KEY:-}
+      - NPM_API_KEY=${NPM_API_KEY:-}
+      - MLX_API_KEY=${MLX_API_KEY:-}
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - llamaservice-network
+
+  # CLI service for batch processing
+  llamapackageservice-cli:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: llamapackageservice:latest
+    container_name: llamapackageservice-cli
+    command: ["llamapackageservice", "--help"]
+    environment:
+      - RUST_LOG=info
+      - RUST_BACKTRACE=1
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - PYPI_API_KEY=${PYPI_API_KEY:-}
+      - NPM_API_KEY=${NPM_API_KEY:-}
+      - MLX_API_KEY=${MLX_API_KEY:-}
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./input:/app/input
+    networks:
+      - llamaservice-network
+    profiles:
+      - cli
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: llamapackageservice-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - llamaservice-network
+    profiles:
+      - cache
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: llamapackageservice-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - llamaservice-network
+    profiles:
+      - monitoring
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: llamapackageservice-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - llamaservice-network
+    profiles:
+      - monitoring
+
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  llamaservice-network:
+    driver: bridge
+    name: llamaservice-network 

@@ -1,0 +1,7 @@
+{
+  "output_dir": "output",
+  "input_dir": "input",
+  "github_token": null,
+  "pypi_timeout": 30,
+  "max_concurrent_downloads": 3
+} 

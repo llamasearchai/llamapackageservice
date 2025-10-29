@@ -1,0 +1,68 @@
+# Build artifacts
+target/
+.cargo/
+Cargo.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation
+*.md
+docs/
+README*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Environment files
+.env
+.env.*
+
+# Node modules (if any)
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test coverage
+coverage/
+
+# Output directories
+output/
+cache/
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Scripts
+scripts/
+*.sh
+
+# Virtual environments
+venv/
+.venv/ 

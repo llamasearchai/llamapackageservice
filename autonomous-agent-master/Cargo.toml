@@ -1,0 +1,113 @@
+[package]
+name = "autonomous-agent-master"
+version = "4.0.0"
+edition = "2021"
+authors = ["Autonomous Agent Team"]
+description = "Unified autonomous agent system for complete development automation"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and telemetry
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.21", features = ["rt-tokio"] }
+opentelemetry-otlp = "0.14"
+
+# Database and state
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "sqlite", "postgres", "migrate"] }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager", "streams"] }
+sea-orm = { version = "0.12", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }
+
+# AI and ML
+candle-core = "0.3"
+candle-nn = "0.3"
+candle-transformers = "0.3"
+ort = { version = "1.16", features = ["cuda", "tensorrt"] }
+
+# External integrations
+octocrab = "0.32"
+git2 = "0.18"
+reqwest = { version = "0.11", features = ["json", "stream"] }
+aws-sdk-s3 = "1.9"
+aws-config = "1.0"
+
+# Message queue
+lapin = "2.3"
+rdkafka = { version = "0.34", features = ["cmake-build"] }
+
+# Web framework
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+dashmap = "5.5"
+parking_lot = "0.12"
+rayon = "1.8"
+crossbeam = "0.8"
+futures = "0.3"
+pin-project = "1.1"
+
+# Configuration
+config = "0.13"
+dotenv = "0.15"
+
+# Process management
+nix = { version = "0.27", features = ["process", "signal"] }
+sysinfo = "0.30"
+
+# Metrics
+prometheus = "0.13"
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Testing
+mockall = "0.12"
+proptest = "1.4"
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+# Python integration
+pyo3 = { version = "0.20", features = ["auto-initialize", "multiple-pymethods"] }
+pyo3-asyncio = "0.20"
+
+# LlamaAgents integration
+llamaagent = { path = "../llamaagent" }
+
+[dev-dependencies]
+tempfile = "3.8"
+wiremock = "0.5"
+test-log = "0.2"
+pretty_assertions = "1.4"
+
+[[bin]]
+name = "agent-master"
+path = "src/main.rs"
+
+[lib]
+name = "autonomous_agent"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.bench]
+inherits = "release"
+debug = true

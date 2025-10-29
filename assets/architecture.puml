@@ -1,0 +1,87 @@
+@startuml LlamaPackageService Architecture
+
+skinparam componentStyle rectangle
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam packageStyle rectangle
+
+package "User Interface Layer" {
+  [CLI Interface] as CLI
+  [Interactive Terminal UI] as TUI
+  [Command Processors] as CMD
+}
+
+package "Processor Layer" {
+  [Processor Registry] as Registry
+  [GitHub Processor] as GitHub
+  [PyPI Processor] as PyPI
+  [NPM Processor] as NPM
+  [Crates Processor] as Crates
+  [Common Utilities] as Common
+}
+
+package "Infrastructure Layer" {
+  [Caching System] as Cache
+  [Rate Limiter] as RateLimiter
+  [Error Handling] as Errors
+  [Logging] as Logging
+  [Metrics] as Metrics
+  [Configuration] as Config
+}
+
+package "Core Utilities" {
+  [Parallel Processing] as Parallel
+  [Filesystem Utilities] as FS
+  [Constants] as Constants
+}
+
+package "External Resources" as External {
+  [GitHub API] as GitHubAPI
+  [PyPI API] as PyPIAPI
+  [NPM Registry] as NPMAPI
+  [Crates.io API] as CratesAPI
+}
+
+' Connections
+CLI --> TUI
+CLI --> CMD
+TUI --> CMD
+
+CMD --> Registry
+
+Registry --> GitHub
+Registry --> PyPI
+Registry --> NPM
+Registry --> Crates
+
+GitHub --> Common
+PyPI --> Common
+NPM --> Common
+Crates --> Common
+
+GitHub --> Cache
+PyPI --> Cache
+NPM --> Cache
+Crates --> Cache
+
+GitHub --> RateLimiter
+PyPI --> RateLimiter
+NPM --> RateLimiter
+Crates --> RateLimiter
+
+GitHub --> GitHubAPI
+PyPI --> PyPIAPI
+NPM --> NPMAPI
+Crates --> CratesAPI
+
+Common --> Errors
+Common --> Logging
+Common --> Metrics
+Common --> Config
+Common --> Parallel
+Common --> FS
+
+@enduml 

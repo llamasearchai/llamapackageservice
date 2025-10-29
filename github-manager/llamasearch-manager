@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+"""
+LlamaSearchAI GitHub Organization Manager CLI
+"""
+import asyncio
+import click
+import sys
+from pathlib import Path
+from datetime import datetime
+import json
+import yaml
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from src.llamasearch_manager import LlamaSearchManager
+from src.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+
+@click.group()
+@click.option('--config', default='config/llamasearch_config.yaml', help='Configuration file')
+@click.pass_context
+def cli(ctx, config):
+    """LlamaSearchAI GitHub Organization Manager
+    
+    Complete management system for all llamasearchai repositories.
+    """
+    ctx.ensure_object(dict)
+    ctx.obj['config'] = config
+
+
+@cli.command()
+@click.pass_context
+def scan(ctx):
+    """Scan all LlamaSearchAI repositories"""
+    async def _scan():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Scanning LlamaSearchAI repositories...\n")
+        
+        repos = await manager.scan_organization_repos()
+        
+        # Display summary
+        click.echo(f"Found {len(repos)} repositories:\n")
+        
+        # Group by language
+        by_language = {}
+        for repo in repos:
+            lang = repo.get('language', 'Other')
+            if lang not in by_language:
+                by_language[lang] = []
+            by_language[lang].append(repo)
+        
+        # Display by language
+        for language, lang_repos in sorted(by_language.items()):
+            click.echo(f"\n{language} ({len(lang_repos)} repos):")
+            for repo in sorted(lang_repos, key=lambda x: x['stars'], reverse=True):
+                status = "🔒" if repo['private'] else "🌐"
+                archived = "📦" if repo['archived'] else ""
+                click.echo(f"  {status} {repo['name']:<30} ⭐ {repo['stars']:<5} 🍴 {repo['forks']:<3} {archived}")
+                if repo['description']:
+                    click.echo(f"     └─ {repo['description'][:60]}...")
+        
+        # Summary statistics
+        total_stars = sum(r['stars'] for r in repos)
+        total_forks = sum(r['forks'] for r in repos)
+        private_count = sum(1 for r in repos if r['private'])
+        
+        click.echo(f"\n📊 Summary:")
+        click.echo(f"  Total Stars: {total_stars}")
+        click.echo(f"  Total Forks: {total_forks}")
+        click.echo(f"  Private Repos: {private_count}/{len(repos)}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_scan())
+
+
+@cli.command()
+@click.option('--target-dir', '-t', help='Target directory for cloning')
+@click.pass_context
+def clone(ctx, target_dir):
+    """Clone/update all repositories locally"""
+    async def _clone():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Cloning/updating LlamaSearchAI repositories...\n")
+        
+        results = await manager.clone_all_repos(target_dir)
+        
+        success_count = sum(1 for r in results.values() if 'Error' not in r)
+        
+        click.echo(f"\n✅ Successfully processed {success_count}/{len(results)} repositories")
+        
+        if success_count < len(results):
+            click.echo("\n❌ Errors:")
+            for repo, result in results.items():
+                if 'Error' in result:
+                    click.echo(f"  {repo}: {result}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_clone())
+
+
+@cli.command()
+@click.option('--output', '-o', help='Output directory for concatenated files')
+@click.option('--repos', '-r', multiple=True, help='Specific repositories to process')
+@click.pass_context
+def generate(ctx, output, repos):
+    """Generate concatenated text files for repositories"""
+    async def _generate():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Generating concatenated files for LlamaSearchAI...\n")
+        
+        # Clone/update first
+        click.echo("📥 Updating repositories...")
+        await manager.clone_all_repos()
+        
+        # Filter repos if specified
+        if repos:
+            original_metadata = manager.repo_metadata
+            manager.repo_metadata = {k: v for k, v in original_metadata.items() if k in repos}
+        
+        # Generate files
+        click.echo("\n📝 Generating concatenated files...")
+        results = await manager.generate_concatenated_files(output)
+        
+        # Display results
+        click.echo(f"\n✅ Generated files for {len(results)} repositories:")
+        
+        for repo_name, file_path in results.items():
+            if file_path and file_path.exists():
+                size_mb = file_path.stat().st_size / (1024 * 1024)
+                click.echo(f"  {repo_name}: {file_path.name} ({size_mb:.2f} MB)")
+        
+        # Show output directory
+        if output:
+            click.echo(f"\n📁 Output directory: {output}")
+        else:
+            output_dir = Path("output") / manager.org_name
+            click.echo(f"\n📁 Output directory: {output_dir}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_generate())
+
+
+@cli.command()
+@click.pass_context
+def analyze(ctx):
+    """Analyze the entire LlamaSearchAI ecosystem"""
+    async def _analyze():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Analyzing LlamaSearchAI ecosystem...\n")
+        
+        analysis = await manager.analyze_ecosystem()
+        
+        # Display analysis
+        click.echo(f"📊 Ecosystem Analysis")
+        click.echo(f"{'=' * 50}")
+        
+        click.echo(f"\nTotal Repositories: {analysis['total_repos']}")
+        
+        click.echo("\n🔤 Languages:")
+        for lang, count in sorted(analysis['languages'].items(), key=lambda x: x[1], reverse=True):
+            click.echo(f"  {lang:<15} {count:>3} repos {'█' * count}")
+        
+        click.echo("\n🏷️  Top Topics:")
+        for topic, count in sorted(analysis['topics'].items(), key=lambda x: x[1], reverse=True)[:10]:
+            click.echo(f"  {topic:<20} {count:>3} repos")
+        
+        click.echo("\n📦 Common Dependencies:")
+        for dep_type, deps in analysis['dependencies'].items():
+            if deps:
+                click.echo(f"\n  {dep_type.upper()}:")
+                for dep in sorted(deps)[:10]:
+                    click.echo(f"    - {dep}")
+        
+        if 'architecture' in analysis and 'ai_analysis' in analysis['architecture']:
+            click.echo("\n🤖 AI Architecture Analysis:")
+            click.echo("=" * 50)
+            click.echo(analysis['architecture']['ai_analysis'])
+        
+        await manager.cleanup()
+    
+    asyncio.run(_analyze())
+
+
+@cli.command()
+@click.argument('project_name')
+@click.option('--template', '-t', help='Template repository to use')
+@click.option('--language', '-l', default='python', help='Primary language')
+@click.pass_context
+def create(ctx, project_name, template, language):
+    """Create a new LlamaSearchAI project"""
+    async def _create():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo(f"🦙 Creating new LlamaSearchAI project: {project_name}\n")
+        
+        # Update config if template specified
+        if template:
+            manager.config.set('development.template_repo', template)
+        if language:
+            manager.config.set('development.default_language', language)
+        
+        result = await manager.create_development_environment(project_name)
+        
+        if result['success']:
+            click.echo(f"✅ Project created successfully!")
+            click.echo(f"\n📁 Local path: {result['local_path']}")
+            click.echo(f"📄 Files created: {result['files_created']}")
+            
+            if result.get('github_url'):
+                click.echo(f"🌐 GitHub URL: {result['github_url']}")
+            
+            click.echo(f"\n🚀 Next steps:")
+            click.echo(f"  cd {result['local_path']}")
+            click.echo(f"  python -m venv venv")
+            click.echo(f"  source venv/bin/activate")
+            click.echo(f"  pip install -r requirements.txt")
+            click.echo(f"  python src/main.py")
+        else:
+            click.echo(f"❌ Failed to create project: {result.get('error')}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_create())
+
+
+@cli.command()
+@click.argument('repo_name')
+@click.option('--description', '-d', help='Update description')
+@click.option('--topics', '-t', multiple=True, help='Update topics')
+@click.option('--file', '-f', multiple=True, help='Update file (format: path:content)')
+@click.pass_context
+def update(ctx, repo_name, description, topics, file):
+    """Update a repository's settings or content"""
+    async def _update():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo(f"🦙 Updating {repo_name}...\n")
+        
+        updates = {}
+        
+        if description:
+            updates['description'] = description
+        
+        if topics:
+            updates['topics'] = list(topics)
+        
+        if file:
+            updates['files'] = {}
+            for file_spec in file:
+                if ':' in file_spec:
+                    path, content = file_spec.split(':', 1)
+                    updates['files'][path] = content
+        
+        if not updates:
+            click.echo("❌ No updates specified")
+            return
+        
+        result = await manager.update_repository(repo_name, updates)
+        
+        if result['success']:
+            click.echo(f"✅ Successfully updated: {', '.join(result['updates'])}")
+        else:
+            click.echo(f"❌ Update failed: {result.get('error')}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_update())
+
+
+@cli.command()
+@click.pass_context
+def docs(ctx):
+    """Generate comprehensive documentation"""
+    async def _docs():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Generating LlamaSearchAI documentation...\n")
+        
+        doc_dir = await manager.generate_documentation()
+        
+        click.echo(f"✅ Documentation generated at: {doc_dir}")
+        click.echo(f"\n📄 Files created:")
+        for doc_file in doc_dir.iterdir():
+            click.echo(f"  - {doc_file.name}")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_docs())
+
+
+@cli.command()
+@click.option('--query', '-q', prompt='Search query', help='Natural language query')
+@click.option('--repo', '-r', help='Limit to specific repository')
+@click.pass_context
+def search(ctx, query, repo):
+    """Search across all repositories using AI"""
+    async def _search():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo(f"🦙 Searching for: {query}\n")
+        
+        # Use Ollama to enhance the search
+        enhanced_query = await manager.ollama.analyze_text(
+            f"Convert this to an effective code search query: {query}"
+        )
+        
+        try:
+            results = await manager.mcp_client.search_code(enhanced_query, repo)
+            
+            if results:
+                click.echo(f"Found {len(results)} results:\n")
+                for i, result in enumerate(results[:20], 1):
+                    click.echo(f"{i}. {result.get('repository')}/{result.get('path')}")
+                    if 'score' in result:
+                        click.echo(f"   Score: {result['score']}")
+            else:
+                click.echo("No results found")
+                
+        except Exception as e:
+            click.echo(f"Search error: {e}")
+            click.echo("Make sure MCP servers are running")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_search())
+
+
+@cli.command()
+@click.pass_context
+def dashboard(ctx):
+    """Launch the web dashboard"""
+    click.echo("🦙 Starting LlamaSearchAI Dashboard...")
+    
+    # Import and run the web app
+    from src.web.app import create_app
+    import uvicorn
+    
+    app = create_app(ctx.obj['config'])
+    
+    click.echo("\n✅ Dashboard running at: http://localhost:8000")
+    click.echo("Press Ctrl+C to stop\n")
+    
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+@cli.command()
+@click.pass_context
+def watch(ctx):
+    """Watch repositories for changes in real-time"""
+    async def _watch():
+        manager = LlamaSearchManager(ctx.obj['config'])
+        await manager.initialize()
+        
+        click.echo("🦙 Watching LlamaSearchAI repositories for changes...\n")
+        click.echo("Press Ctrl+C to stop\n")
+        
+        # Define callbacks
+        async def on_commit(repo, commit_sha):
+            click.echo(f"📝 New commit in {repo.name}: {commit_sha}")
+        
+        async def on_issue(repo, issue):
+            click.echo(f"🐛 New issue in {repo.name}: #{issue.number} - {issue.title}")
+        
+        async def on_pr(repo, pr):
+            click.echo(f"🔀 New PR in {repo.name}: #{pr.number} - {pr.title}")
+        
+        # Monitor key repositories
+        key_repos = ['llamaagent', 'llamagraph', 'llama-cli']
+        
+        for repo_name in key_repos:
+            if repo_name in manager.repo_metadata:
+                await manager.mcp_client.monitor_repository(
+                    f"{manager.org_name}/{repo_name}",
+                    ['commit', 'issue', 'pr']
+                )
+        
+        try:
+            # Keep running
+            while True:
+                await asyncio.sleep(60)
+        except KeyboardInterrupt:
+            click.echo("\n\n👋 Stopping watch mode")
+        
+        await manager.cleanup()
+    
+    asyncio.run(_watch())
+
+
+if __name__ == '__main__':
+    cli()

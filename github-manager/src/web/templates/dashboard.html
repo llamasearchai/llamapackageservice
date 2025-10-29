@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repository Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .repo-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .terminal {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .loading {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fab fa-github text-3xl mr-3"></i>
+                    <h1 class="text-xl font-semibold">GitHub Repository Manager</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshRepositories()" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button onclick="showCreateRepo()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <i class="fas fa-plus mr-2"></i>New Repository
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Stats Overview -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-lg">
+                        <i class="fas fa-folder text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Repositories</p>
+                        <p class="text-2xl font-semibold">{{ total_repos }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-lg">
+                        <i class="fas fa-code-branch text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Active Branches</p>
+                        <p class="text-2xl font-semibold" id="active-branches">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="bg-yellow-100 p-3 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Modified Repos</p>
+                        <p class="text-2xl font-semibold" id="modified-repos">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-3 rounded-lg">
+                        <i class="fas fa-bell text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Notifications</p>
+                        <p class="text-2xl font-semibold" id="notifications">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 pb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Repository List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h2 class="text-lg font-semibold">Repositories</h2>
+                        <div class="flex space-x-2">
+                            <input type="text" id="search-repos" placeholder="Search repositories..." 
+                                   class="px-3 py-1 border rounded" onkeyup="filterRepos()">
+                            <select id="filter-status" class="px-3 py-1 border rounded" onchange="filterRepos()">
+                                <option value="">All</option>
+                                <option value="clean">Clean</option>
+                                <option value="modified">Modified</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="repo-list" class="p-4 space-y-3">
+                        {% for repo in repositories %}
+                        <div class="repo-card border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
+                             onclick="selectRepo('{{ repo.name }}', '{{ repo.path }}')">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-lg">{{ repo.name }}</h3>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-code-branch mr-1"></i>{{ repo.current_branch }}
+                                        {% if repo.status.is_dirty %}
+                                        <span class="ml-2 text-yellow-600">
+                                            <i class="fas fa-circle text-xs"></i> Modified
+                                        </span>
+                                        {% else %}
+                                        <span class="ml-2 text-green-600">
+                                            <i class="fas fa-check-circle text-xs"></i> Clean
+                                        </span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="event.stopPropagation(); syncRepo('{{ repo.name }}')" 
+                                            class="text-blue-600 hover:text-blue-800">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); analyzeRepo('{{ repo.name }}', '{{ repo.path }}')" 
+                                            class="text-purple-600 hover:text-purple-800">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% if repo.last_commit %}
+                            <p class="text-xs text-gray-500 mt-2">
+                                Last commit: {{ repo.last_commit.sha }} - {{ repo.last_commit.message[:50] }}...
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="space-y-6">
+                <!-- AI Command Interface -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold">AI Assistant</h2>
+                    </div>
+                    <div class="p-4">
+                        <textarea id="ai-command" rows="3" 
+                                  placeholder="Ask me anything about your repositories..."
+                                  class="w-full p-3 border rounded resize-none"></textarea>
+                        <button onclick="executeAICommand()" 
+                                class="mt-2 w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600">
+                            <i class="fas fa-magic mr-2"></i>Execute Command
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold">Quick Actions</h2>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <button onclick="batchSync()" class="w-full text-left p-3 border rounded hover:bg-gray-50">
+                            <i class="fas fa-sync-alt text-blue-600 mr-2"></i>
+                            Sync All Repositories
+                        </button>
+                        <button onclick="batchAnalyze()" class="w-full text-left p-3 border rounded hover:bg-gray-50">
+                            <i class="fas fa-chart-bar text-purple-600 mr-2"></i>
+                            Analyze All Repositories
+                        </button>
+                        <button onclick="showIssuesOverview()" class="w-full text-left p-3 border rounded hover:bg-gray-50">
+                            <i class="fas fa-exclamation-circle text-yellow-600 mr-2"></i>
+                            Issues Overview
+                        </button>
+                        <button onclick="searchCode()" class="w-full text-left p-3 border rounded hover:bg-gray-50">
+                            <i class="fas fa-search text-green-600 mr-2"></i>
+                            Search Code
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MCP Server Status -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold">MCP Servers</h2>
+                    </div>
+                    <div class="p-4 space-y-2" id="mcp-status">
+                        <div class="flex items-center justify-between">
+                            <span>GitHub Server</span>
+                            <span class="text-green-600"><i class="fas fa-circle text-xs"></i> Connected</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Filesystem Server</span>
+                            <span class="text-gray-400"><i class="fas fa-circle text-xs"></i> Disconnected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminal Output -->
+    <div id="terminal" class="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 transform translate-y-full transition-transform">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-semibold">Terminal Output</h3>
+                <button onclick="toggleTerminal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="terminal-output" class="terminal p-3 rounded h-48 overflow-y-auto text-sm">
+                <p class="text-gray-500">Ready...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40"></div>
+    
+    <!-- Create Repository Modal -->
+    <div id="create-repo-modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-96">
+            <h2 class="text-xl font-semibold mb-4">Create New Repository</h2>
+            <form onsubmit="createRepository(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Repository Name</label>
+                    <input type="text" id="repo-name" required class="w-full p-2 border rounded">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Description</label>
+                    <textarea id="repo-description" rows="3" class="w-full p-2 border rounded"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="repo-private" class="mr-2">
+                        <span>Private Repository</span>
+                    </label>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="hideModal('create-repo-modal')" 
+                            class="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Create Repository
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Analysis Results Modal -->
+    <div id="analysis-modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl max-h-[80vh] overflow-y-auto">
+            <h2 class="text-xl font-semibold mb-4">Repository Analysis</h2>
+            <div id="analysis-content" class="space-y-4">
+                <!-- Analysis results will be inserted here -->
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="hideModal('analysis-modal')" 
+                        class="px-4 py-2 border rounded hover:bg-gray-50">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let selectedRepo = null;
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateMCPStatus();
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addTerminalOutput('WebSocket error: ' + error, 'error');
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                setTimeout(initWebSocket, 5000); // Reconnect after 5 seconds
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'analysis_result':
+                    showAnalysisResults(data.data);
+                    break;
+                case 'command_result':
+                    showCommandResult(data.data);
+                    break;
+                case 'repo_event':
+                    handleRepoEvent(data.event, data.data);
+                    break;
+                case 'batch_complete':
+                    handleBatchComplete(data.result);
+                    break;
+            }
+        }
+
+        function selectRepo(name, path) {
+            selectedRepo = { name, path };
+            document.querySelectorAll('.repo-card').forEach(card => {
+                card.classList.remove('border-blue-500', 'border-2');
+            });
+            event.currentTarget.classList.add('border-blue-500', 'border-2');
+            addTerminalOutput(`Selected repository: ${name}`);
+        }
+
+        async function refreshRepositories() {
+            try {
+                const response = await fetch('/api/repositories');
+                const repos = await response.json();
+                updateRepoList(repos);
+                addTerminalOutput('Repositories refreshed');
+            } catch (error) {
+                addTerminalOutput('Error refreshing repositories: ' + error, 'error');
+            }
+        }
+
+        async function syncRepo(repoName) {
+            try {
+                addTerminalOutput(`Syncing ${repoName}...`);
+                const response = await fetch(`/api/repository/${repoName}/sync`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    addTerminalOutput(`✓ ${repoName} synced successfully`);
+                    refreshRepositories();
+                } else {
+                    addTerminalOutput(`✗ Failed to sync ${repoName}: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput(`Error syncing ${repoName}: ${error}`, 'error');
+            }
+        }
+
+        async function analyzeRepo(repoName, repoPath) {
+            try {
+                showTerminal();
+                addTerminalOutput(`Analyzing ${repoName}...`);
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'analyze_repo',
+                        repo_path: repoPath
+                    }));
+                } else {
+                    const response = await fetch(`/api/repository/${repoName}/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ repo_path: repoPath })
+                    });
+                    const result = await response.json();
+                    showAnalysisResults(result);
+                }
+            } catch (error) {
+                addTerminalOutput(`Error analyzing ${repoName}: ${error}`, 'error');
+            }
+        }
+
+        async function executeAICommand() {
+            const command = document.getElementById('ai-command').value;
+            if (!command.trim()) return;
+            
+            try {
+                showTerminal();
+                addTerminalOutput(`> ${command}`);
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'execute_command',
+                        command: command,
+                        repo: selectedRepo?.path
+                    }));
+                } else {
+                    const response = await fetch('/api/command', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            command: command,
+                            repo: selectedRepo?.path
+                        })
+                    });
+                    const result = await response.json();
+                    showCommandResult(result);
+                }
+                
+                document.getElementById('ai-command').value = '';
+            } catch (error) {
+                addTerminalOutput('Error executing command: ' + error, 'error');
+            }
+        }
+
+        function showCommandResult(result) {
+            addTerminalOutput(result.analysis);
+            if (result.tool_calls_made > 0) {
+                addTerminalOutput(`Tools used: ${result.tools_used.join(', ')}`, 'info');
+            }
+        }
+
+        function showAnalysisResults(result) {
+            const content = document.getElementById('analysis-content');
+            content.innerHTML = '';
+            
+            if (result.analysis) {
+                content.innerHTML += `
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h3 class="font-semibold mb-2">AI Analysis</h3>
+                        <pre class="whitespace-pre-wrap">${result.analysis}</pre>
+                    </div>
+                `;
+            }
+            
+            if (result.repo_stats) {
+                content.innerHTML += `
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h3 class="font-semibold mb-2">Repository Statistics</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>Files: ${result.repo_stats.files}</div>
+                            <div>Has Tests: ${result.repo_stats.has_tests ? 'Yes' : 'No'}</div>
+                            <div>Has Docs: ${result.repo_stats.has_docs ? 'Yes' : 'No'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (result.visual_analyses) {
+                content.innerHTML += `
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h3 class="font-semibold mb-2">Visual Analysis</h3>
+                        ${result.visual_analyses.map(va => `
+                            <div class="mb-3">
+                                <h4 class="font-medium">${va.file}</h4>
+                                <p class="text-sm">${va.analysis}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            showModal('analysis-modal');
+            addTerminalOutput('Analysis complete');
+        }
+
+        async function batchSync() {
+            const repos = Array.from(document.querySelectorAll('.repo-card')).map(card => {
+                return card.querySelector('h3').textContent;
+            });
+            
+            try {
+                showTerminal();
+                addTerminalOutput(`Starting batch sync for ${repos.length} repositories...`);
+                
+                const response = await fetch('/api/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        operation: 'sync',
+                        repositories: repos
+                    })
+                });
+                
+                const result = await response.json();
+                addTerminalOutput(`Batch operation started. Task ID: ${result.task_id}`);
+            } catch (error) {
+                addTerminalOutput('Error starting batch sync: ' + error, 'error');
+            }
+        }
+
+        function handleBatchComplete(result) {
+            const successCount = Object.values(result).filter(r => r.success).length;
+            const totalCount = Object.keys(result).length;
+            
+            addTerminalOutput(`Batch operation complete: ${successCount}/${totalCount} successful`);
+            
+            Object.entries(result).forEach(([repo, repoResult]) => {
+                if (!repoResult.success) {
+                    addTerminalOutput(`  ${repo}: ${repoResult.error}`, 'error');
+                }
+            });
+            
+            refreshRepositories();
+        }
+
+        function showCreateRepo() {
+            showModal('create-repo-modal');
+        }
+
+        async function createRepository(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('repo-name').value;
+            const description = document.getElementById('repo-description').value;
+            const isPrivate = document.getElementById('repo-private').checked;
+            
+            try {
+                const response = await fetch('/api/repositories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        private: isPrivate
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addTerminalOutput(`✓ Repository '${name}' created successfully`);
+                    hideModal('create-repo-modal');
+                    refreshRepositories();
+                    event.target.reset();
+                } else {
+                    addTerminalOutput(`✗ Failed to create repository: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addTerminalOutput('Error creating repository: ' + error, 'error');
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('active-branches').textContent = stats.active_branches || '-';
+                document.getElementById('modified-repos').textContent = stats.modified_repos || '0';
+                
+                // Update notifications
+                const notifResponse = await fetch('/api/notifications');
+                const notifs = await notifResponse.json();
+                document.getElementById('notifications').textContent = notifs.notifications?.length || '0';
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        async function updateMCPStatus() {
+            try {
+                const response = await fetch('/api/mcp/status');
+                const status = await response.json();
+                
+                const statusHtml = Object.entries(status).map(([server, info]) => {
+                    const isConnected = info.status === 'connected';
+                    const color = isConnected ? 'green' : 'gray';
+                    return `
+                        <div class="flex items-center justify-between">
+                            <span>${server.charAt(0).toUpperCase() + server.slice(1)} Server</span>
+                            <span class="text-${color}-600">
+                                <i class="fas fa-circle text-xs"></i> 
+                                ${isConnected ? 'Connected' : 'Disconnected'}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('mcp-status').innerHTML = statusHtml;
+            } catch (error) {
+                console.error('Error updating MCP status:', error);
+            }
+        }
+
+        function showTerminal() {
+            document.getElementById('terminal').classList.remove('translate-y-full');
+        }
+
+        function hideTerminal() {
+            document.getElementById('terminal').classList.add('translate-y-full');
+        }
+
+        function toggleTerminal() {
+            document.getElementById('terminal').classList.toggle('translate-y-full');
+        }
+
+        function addTerminalOutput(message, type = 'info') {
+            const output = document.getElementById('terminal-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : 
+                         type === 'success' ? 'text-green-400' : 
+                         'text-gray-300';
+            
+            output.innerHTML += `<p class="${color}">[${timestamp}] ${message}</p>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+
+        function filterRepos() {
+            const searchTerm = document.getElementById('search-repos').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-status').value;
+            
+            document.querySelectorAll('.repo-card').forEach(card => {
+                const name = card.querySelector('h3').textContent.toLowerCase();
+                const isModified = card.querySelector('.text-yellow-600') !== null;
+                
+                const matchesSearch = name.includes(searchTerm);
+                const matchesStatus = !statusFilter || 
+                    (statusFilter === 'modified' && isModified) ||
+                    (statusFilter === 'clean' && !isModified);
+                
+                card.style.display = matchesSearch && matchesStatus ? 'block' : 'none';
+            });
+        }
+
+        function updateRepoList(repos) {
+            const repoList = document.getElementById('repo-list');
+            repoList.innerHTML = repos.map(repo => `
+                <div class="repo-card border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
+                     onclick="selectRepo('${repo.name}', '${repo.path}')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-lg">${repo.name}</h3>
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-code-branch mr-1"></i>${repo.current_branch}
+                                ${repo.status.is_dirty ? 
+                                    '<span class="ml-2 text-yellow-600"><i class="fas fa-circle text-xs"></i> Modified</span>' :
+                                    '<span class="ml-2 text-green-600"><i class="fas fa-check-circle text-xs"></i> Clean</span>'
+                                }
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="event.stopPropagation(); syncRepo('${repo.name}')" 
+                                    class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); analyzeRepo('${repo.name}', '${repo.path}')" 
+                                    class="text-purple-600 hover:text-purple-800">
+                                <i class="fas fa-chart-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${repo.last_commit ? `
+                        <p class="text-xs text-gray-500 mt-2">
+                            Last commit: ${repo.last_commit.sha} - ${repo.last_commit.message.substring(0, 50)}...
+                        </p>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            updateStats();
+            setInterval(updateStats, 30000); // Update stats every 30 seconds
+            
+            // Close modals on backdrop click
+            document.getElementById('modal-backdrop').addEventListener('click', () => {
+                document.querySelectorAll('[id$="-modal"]').forEach(modal => {
+                    modal.classList.add('hidden');
+                });
+                document.getElementById('modal-backdrop').classList.add('hidden');
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'k':
+                            e.preventDefault();
+                            document.getElementById('ai-command').focus();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            refreshRepositories();
+                            break;
+                        case '`':
+                            e.preventDefault();
+                            toggleTerminal();
+                            break;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

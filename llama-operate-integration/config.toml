@@ -1,0 +1,54 @@
+# Llama-Operate Configuration
+
+[python_config]
+operate_path = "../operate-enhanced"
+model = "gpt-4o"
+sandbox_mode = true
+cache_enabled = true
+
+# GitHub configuration
+github_token = "${GITHUB_TOKEN}"
+
+# Database configuration
+database_url = "sqlite://llama-operate.db"
+
+[monitoring_config]
+metrics_retention_hours = 168  # 7 days
+alert_cooldown_minutes = 15
+health_check_interval_seconds = 60
+
+# Automation rules
+[[automation_rules]]
+id = "high_error_rate"
+name = "High Error Rate Detection"
+description = "Detect and respond to high error rates"
+enabled = true
+cooldown_minutes = 30
+
+[automation_rules.trigger]
+type = "metric"
+name = "error_rate"
+condition = { type = "greater_than", value = 5.0 }
+duration_minutes = 5
+
+[automation_rules.action]
+type = "composite"
+actions = [
+    { type = "create_alert", level = "warning", message = "High error rate detected" },
+    { type = "trigger_workflow", workflow_id = "error_analysis" }
+]
+
+[[automation_rules]]
+id = "auto_pr_review"
+name = "Automatic PR Review"
+description = "Automatically review pull requests"
+enabled = true
+cooldown_minutes = 5
+
+[automation_rules.trigger]
+type = "event"
+event_type = "pull_request.opened"
+
+[automation_rules.action]
+type = "trigger_workflow"
+workflow_id = "code_review"

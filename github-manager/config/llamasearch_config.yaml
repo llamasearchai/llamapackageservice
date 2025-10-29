@@ -1,0 +1,159 @@
+# LlamaSearchAI Organization Configuration
+github_token: "${GITHUB_TOKEN}"  # Set via environment variable
+organization: "llamasearchai"
+local_repos_path: "~/Development/llamasearchai"
+backup_path: "~/Backups/llamasearchai"
+
+# Repository concatenation settings
+concatenation:
+  output_path: "~/Documents/llamasearchai_exports"
+  max_file_size: 1048576  # 1MB per file
+  include_patterns:
+    python:
+      - "*.py"
+      - "*.pyx"
+      - "*.pyi"
+      - "requirements*.txt"
+      - "setup.py"
+      - "pyproject.toml"
+    rust:
+      - "*.rs"
+      - "Cargo.toml"
+    javascript:
+      - "*.js"
+      - "*.jsx"
+      - "*.ts"
+      - "*.tsx"
+      - "package.json"
+    documentation:
+      - "*.md"
+      - "*.rst"
+      - "*.txt"
+      - "LICENSE*"
+    config:
+      - "*.yaml"
+      - "*.yml"
+      - "*.toml"
+      - "*.json"
+      - "*.ini"
+      - ".env.example"
+  exclude_patterns:
+    - "__pycache__"
+    - "*.pyc"
+    - ".pytest_cache"
+    - "node_modules"
+    - "venv"
+    - "env"
+    - ".env"
+    - "target"  # Rust build
+    - "dist"
+    - "build"
+    - ".git"
+    - "*.log"
+    - "*.tmp"
+    - ".DS_Store"
+    - "coverage"
+    - "htmlcov"
+
+# MCP Server Configuration
+mcp_servers:
+  - name: github
+    host: localhost
+    port: 3001
+    capabilities:
+      - repository_management
+      - issue_tracking
+      - pull_requests
+      - workflow_automation
+      - code_search
+  - name: llamasearch
+    host: localhost
+    port: 3002
+    capabilities:
+      - agent_management
+      - knowledge_graph
+      - search_integration
+  - name: project
+    host: localhost
+    port: 3003
+    capabilities:
+      - project_analysis
+      - dependency_management
+      - build_automation
+
+# Ollama Configuration
+ollama_host: "http://localhost:11434"
+ollama_models:
+  code_analysis: "llama3.1:8b"
+  vision: "llava:13b"
+  documentation: "llama3.1:8b"
+  security_audit: "llama3.1:8b"
+
+# Repository-specific settings
+repository_settings:
+  llamaagent:
+    priority: high
+    auto_sync: true
+    generate_docs: true
+    run_tests: true
+  llamagraph:
+    priority: high
+    auto_sync: true
+    generate_docs: true
+  llama-cli:
+    priority: high
+    auto_sync: true
+    generate_docs: true
+  OpenPersona:
+    priority: medium
+    auto_sync: true
+    generate_docs: true
+  llama-metasearch:
+    priority: medium
+    auto_sync: true
+  llamasearch:
+    priority: high
+    auto_sync: true
+
+# Export settings
+export:
+  formats:
+    - txt
+    - markdown
+    - json
+  compression: true
+  include_metadata: true
+  include_git_history: false
+  generate_index: true
+  generate_summary: true
+
+# Automation settings
+automation:
+  daily_sync: true
+  sync_time: "02:00"
+  auto_concatenate: true
+  auto_analyze: true
+  notification_webhook: ""
+
+# Development settings
+development:
+  template_repo: "llamaagent"  # Use as template for new projects
+  default_language: "python"
+  default_license: "MIT"
+  include_ci: true
+  include_docker: true
+  include_tests: true
+
+# Monitoring and logging
+logging:
+  level: INFO
+  file: "~/.llamasearch/logs/manager.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Web dashboard settings
+web_dashboard:
+  host: "0.0.0.0"
+  port: 8000
+  enable_auth: false
+  theme: "dark"
