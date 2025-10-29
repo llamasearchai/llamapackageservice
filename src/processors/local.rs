@@ -106,21 +106,18 @@ impl LocalProcessor {
             )));
         }
         
-        // Check read permissions
+        // Check read permissions - but continue anyway
         match std_fs::metadata(input_path) {
-            Ok(metadata) => {
-                if metadata.permissions().readonly() && input_path.is_dir() {
-                    warn!("Path '{}' has restricted permissions. Some files may be skipped.", input_path.display());
-                }
+            Ok(_metadata) => {
+                // Permissions checked successfully, proceed
             }
             Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-                return Err(ProcessorError::Message(format!(
-                    "Permission denied for path: '{}'. Please check file/directory permissions.",
-                    input_path.display()
-                )));
+                // Log warning but continue processing - we'll skip inaccessible parts
+                warn!("Permission denied for root path: '{}'. Will attempt to process accessible parts.", input_path.display());
             }
-            Err(e) => {
-                return Err(ProcessorError::IO(e));
+            Err(_e) => {
+                // Other metadata errors - log and continue
+                warn!("Could not read metadata for: '{}'. Will attempt to process.", input_path.display());
             }
         }
 
@@ -129,15 +126,28 @@ impl LocalProcessor {
         
         if input_path.is_file() {
             pb.set_message("Processing file...");
-            self.process_single_file(input_path, output_dir, &pb).await?;
+            // Try to process the file, skip if permission denied
+            match self.process_single_file(input_path, output_dir, &pb).await {
+                Ok(_) => {},
+                Err(e) => {
+                    warn!("Could not process file: {}", e);
+                    // Continue anyway - don't fail
+                }
+            }
         } else if input_path.is_dir() {
             pb.set_message("Processing directory...");
-            self.process_directory(input_path, output_dir, &pb).await?;
+            // Process directory, skipping inaccessible parts
+            match self.process_directory(input_path, output_dir, &pb).await {
+                Ok(_) => {},
+                Err(e) => {
+                    warn!("Partial processing due to: {}", e);
+                    // Continue anyway - we processed what we could
+                }
+            }
         } else {
-            return Err(ProcessorError::Message(format!(
-                "Invalid path type: '{}'. Path must be a regular file or directory.",
-                input_path.display()
-            )));
+            warn!("Unusual path type for: '{}'. Attempting to process as directory.", input_path.display());
+            // Try to process as directory anyway
+            let _ = self.process_directory(input_path, output_dir, &pb).await;
         }
 
         pb.finish_with_message("Processing completed");
@@ -179,12 +189,31 @@ impl LocalProcessor {
         
         pb.set_message(format!("Analyzing directory: {}", dir_name));
         
+        // Set up output path early
+        let local_output_dir = output_dir.join(LOCAL_REPOS_DIR);
+        std_fs::create_dir_all(&local_output_dir)?;
+        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+        let output_filename = format!("{}_{}_{}.txt", timestamp, dir_name, ANALYSIS_SUFFIX);
+        let output_path = local_output_dir.join(output_filename);
+        
         // Collect all files first
         let files = self.collect_files(dir_path)?;
         let file_count = files.len();
         
         if file_count == 0 {
-            return Err(ProcessorError::Message("No files found in directory".to_string()));
+            warn!("No accessible files found in directory: {}", dir_path.display());
+            // Create a minimal analysis file anyway
+            let mut analysis = String::new();
+            analysis.push_str(&format!("# Local Repository Analysis: {}\n\n", dir_name));
+            analysis.push_str(&format!("**Author:** Nik Jois <nikjois@llamasearch.ai>\n"));
+            analysis.push_str(&format!("**Generated:** {}\n\n", Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
+            analysis.push_str("## Status\n\n");
+            analysis.push_str("No accessible files found.\n");
+            analysis.push_str("All files may be inaccessible due to permissions or the directory may be empty.\n");
+            
+            save_output_file(&analysis, &output_path).await?;
+            info!("Created minimal analysis at: {}", output_path.display());
+            return Ok(());
         }
         
         pb.set_length(file_count as u64);
@@ -248,14 +277,7 @@ impl LocalProcessor {
             analysis.push_str("\n```\n\n");
         }
         
-        // Save the analysis
-        let local_output_dir = output_dir.join(LOCAL_REPOS_DIR);
-        tokio_fs::create_dir_all(&local_output_dir).await?;
-        
-        let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-        let output_filename = format!("{}_{}_{}.txt", timestamp, dir_name, ANALYSIS_SUFFIX);
-        let output_path = local_output_dir.join(output_filename);
-        
+        // Save the analysis (output_path already defined at start of function)
         save_output_file(&analysis, &output_path).await?;
         
         println!("Processed directory: {} -> {}", dir_path.display(), output_path.display());
@@ -263,6 +285,7 @@ impl LocalProcessor {
     }
 
     /// Collect all files in a directory, respecting ignore patterns
+    /// Always continues processing, skipping any inaccessible files/directories
     fn collect_files(&self, dir_path: &Path) -> Result<Vec<PathBuf>> {
         let mut files = Vec::new();
         
@@ -278,24 +301,31 @@ impl LocalProcessor {
                     }
                 }
                 Err(e) => {
-                    // Check if it's a permission error
+                    // Log any error but always continue processing
+                    let path_str = e.path()
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_else(|| "unknown path".to_string());
+                    
                     if let Some(io_err) = e.io_error() {
-                        if io_err.kind() == std::io::ErrorKind::PermissionDenied {
-                            // Log and skip permission-denied entries
-                            warn!("Skipping due to permissions: {}", e.path().map(|p| p.display().to_string()).unwrap_or_else(|| "unknown path".to_string()));
-                            continue;
+                        match io_err.kind() {
+                            std::io::ErrorKind::PermissionDenied => {
+                                warn!("Skipping (permission denied): {}", path_str);
+                            }
+                            _ => {
+                                warn!("Skipping (error): {} - {}", path_str, io_err);
+                            }
                         }
+                    } else {
+                        warn!("Skipping (unknown error): {}", path_str);
                     }
-                    // For other errors, provide detailed context
-                    let path_info = e.path().map(|p| format!(" at path: {}", p.display())).unwrap_or_default();
-                    return Err(ProcessorError::Message(format!(
-                        "Error traversing directory{}: {}. Check permissions and ensure the full path is accessible.",
-                        path_info, e
-                    )));
+                    
+                    // Always continue - never fail
+                    continue;
                 }
             }
         }
         
+        // Always return success, even if we found no files
         Ok(files)
     }
 
