@@ -8,7 +8,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.76.0%2B-orange)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/yourusername/llamapackageservice/rust.yml?branch=main)](https://github.com/yourusername/llamapackageservice/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/llamasearchai/llamapackageservice/rust.yml?branch=main)](https://github.com/llamasearchai/llamapackageservice/actions)
 [![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://docs.rs/llamapackageservice)
 
 </div>
@@ -41,7 +41,7 @@ cargo install llamapackageservice
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llamapackageservice.git
+git clone https://github.com/llamasearchai/llamapackageservice.git
 cd llamapackageservice
 
 # Build the project
@@ -121,8 +121,8 @@ LlamaPackageService is built around a modular processor architecture:
 
 For comprehensive documentation, visit:
 - [API Reference](https://docs.rs/llamapackageservice)
-- [User Guide](https://github.com/yourusername/llamapackageservice/wiki)
-- [Architecture Overview](https://github.com/yourusername/llamapackageservice/wiki/Architecture)
+- [User Guide](https://github.com/llamasearchai/llamapackageservice/wiki)
+- [Architecture Overview](https://github.com/llamasearchai/llamapackageservice/wiki/Architecture)
 
 ## Contributing
 
